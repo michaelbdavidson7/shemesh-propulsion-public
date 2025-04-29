@@ -82,7 +82,7 @@ def update_masses(area):
 
     
     # 🟢 SALL-E (Perimeter + 2 Radii)
-    basic_sma_length = perimeter + 2 * radius
+    basic_sma_length = 5 * side 
     basic_sma_mass_g = basic_sma_length * SMA_MASS_PER_M
     basic_sma_mass_kg = basic_sma_mass_g / 1000
     basic_sma_and_sails_mass_kg = basic_sma_mass_kg + sail_weight
@@ -288,4 +288,4 @@ Total Wire + Sails Mass:        {radial_sma_and_sails_mass_kg:.2f} kg
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run(debug=True)
