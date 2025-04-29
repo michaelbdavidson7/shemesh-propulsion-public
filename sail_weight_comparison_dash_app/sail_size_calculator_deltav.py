@@ -14,11 +14,25 @@ C = 3e8  # Speed of light, m/s
 SOLAR_PRESSURE = 4.56e-6  # N/m²
 SMA_MASS_PER_M2 = 0.002  # kg/m
 SMA_MASS_PER_M2 = 0.0005662499999999999  # kg/m
+SMA_MASS_PER_M = 3            # g/m, REFACTOR BASED ON COATINGS AND ADHESIVES
 ACS3_BOOMS_MASS_PER_M2 = 0.0082
 ACS3_SAIL_MASS_PER_M2 = 0.00425  # kg/m²
 HOURS = 700 # for the delta v at 700 hours , sail area vs kg mass chart
 SECONDS = HOURS * 3600
 
+ACS3_BOOM_MASS_PER_M = 23.43     # g/m, ACS3 boom mass per meter
+SMA_MASS_PER_M = 1.66            # g/m, based on 0.50mm SMA wire
+SMA_MASS_PER_M = 3            # g/m, REFACTOR BASED ON COATINGS AND ADHESIVES
+SMA_MASS_1_MM_DIAMETER_PER_M = 7.06 # g/m this is the less optimal scenario but very rigid
+ACS3_SCALING_FACTOR = 3.13       # ACS3 boom length per meter of sail side length
+NUM_RADIAL_WIRES = 8             # radial SMA wires, each has 2 paths (out and back)
+ACS3_SAIL_MASS_PER_M2 = 0.00425  # kg/m²
+APPROX_KG_SUBSYSTEM_PARTS_REDUCTION = 3 # kg saved from using solid state
+PRODUCT_NAME = "SSP-1"
+SAIL_BOOM_ENTIRE_SUBSYSTEM = 7.7 #kg
+# (85g * 4 = 340g for sails) + (164g * 4 = 646g for booms) = 996g. 7.7 - 0.996
+SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS =  6.704
+OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED = SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS - APPROX_KG_SUBSYSTEM_PARTS_REDUCTION
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "Solar Sail Δv Simulator"
@@ -31,10 +45,10 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             dbc.Label("Sail Width (m)"),
-            dcc.Input(id="sail-width", type="number", value=100, step=1, className="form-control"),
+            dcc.Input(id="sail-width", type="number", value=44.722, step=.001, className="form-control"),
 
             dbc.Label("Sail Height (m)", className="mt-3"),
-            dcc.Input(id="sail-height", type="number", value=100, step=1, className="form-control"),
+            dcc.Input(id="sail-height", type="number", value=44.721, step=.001, className="form-control"),
 
             dbc.Label("Spacecraft Mass (kg)", className="mt-3"),
             dcc.Input(id="mass", type="number", value=5, step=1, className="form-control"),
@@ -97,12 +111,20 @@ def compute_solar_sail_stats(width_m, height_m, base_mass_kg, hours_duration=720
     area = width_m * height_m
     perimeter = 2 * (width_m + height_m)
 
-    sma_mass = perimeter * SMA_MASS_PER_M2
+    # sma_mass = perimeter * SMA_MASS_PER_M
     sail_mass = area * ACS3_SAIL_MASS_PER_M2
-    total_mass = base_mass_kg + sma_mass + sail_mass
+    # total_mass = base_mass_kg + sma_mass + sail_mass
+    
+    radius = width_m / 2
+    # how much wire do we need
+    basic_sma_length = perimeter + 2 * radius
+    basic_sma_mass_g = basic_sma_length * SMA_MASS_PER_M
+    basic_sma_mass_kg = basic_sma_mass_g / 1000
+    basic_sma_and_sails_mass_kg = basic_sma_mass_kg + sail_mass
+    basic_sma_total = sail_mass + basic_sma_mass_kg + OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED
 
     thrust = 2 * SOLAR_PRESSURE * area  # N
-    acceleration = thrust / total_mass  # m/s²
+    acceleration = thrust / basic_sma_total  # m/s²
 
     time_hours = np.linspace(0, hours_duration, 300)
     time_seconds = time_hours * 3600
@@ -111,9 +133,9 @@ def compute_solar_sail_stats(width_m, height_m, base_mass_kg, hours_duration=720
     return {
         "area": area,
         "perimeter": perimeter,
-        "sma_mass": sma_mass,
+        "sma_mass": basic_sma_total,
         "sail_mass": sail_mass,
-        "total_mass": total_mass,
+        "total_mass": basic_sma_total,
         "thrust": thrust,
         "acceleration": acceleration,
         "dv_per_minute": acceleration * 60,
@@ -122,7 +144,7 @@ def compute_solar_sail_stats(width_m, height_m, base_mass_kg, hours_duration=720
         "delta_v": delta_v
     }
     
-stats = compute_solar_sail_stats(width_m=100, height_m=100, base_mass_kg=5, hours_duration=720)
+stats = compute_solar_sail_stats(width_m=44.72, height_m=44.72, base_mass_kg=10, hours_duration=720)
 print(f"Sail Area: {stats['area']} m²")
 print(f"SMA Mass: {stats['sma_mass']:.4f} kg")
 print(f"Sail Mass (ACS3): {stats['sail_mass']:.4f} kg")
@@ -150,9 +172,12 @@ A, M = np.meshgrid(sail_areas, base_masses)  # meshgrid: area vs base mass
 # Derived parameters
 width = height = np.sqrt(A)  # assume square sails
 perimeter = 2 * (width + height)
-sma_mass = perimeter * SMA_MASS_PER_M2
+radius = width / 2
+basic_sma_length = perimeter + width * radius
+basic_sma_mass_g = basic_sma_length * SMA_MASS_PER_M
+basic_sma_mass_kg = basic_sma_mass_g / 1000
 sail_mass = A * ACS3_SAIL_MASS_PER_M2
-total_mass = M + sma_mass + sail_mass
+total_mass = M + basic_sma_mass_kg + sail_mass + OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED
 thrust = 2 * SOLAR_PRESSURE * A
 acceleration = thrust / total_mass
 delta_v = acceleration * SECONDS  # m/s at 700 hours
@@ -187,25 +212,25 @@ def get_deltav_heatmap(dv_at_700:np.ndarray, title:str) ->go.Figure:
         height=1000 ,
     )
     return heatmap_fig
-def get_deltav_and_accel_per_hour(area, mass, perimeter, mass_per_m2, figure):
+# def get_deltav_and_accel_per_hour(area, mass, perimeter, mass_per_m2, figure):
 
-        sma_weight = perimeter * mass_per_m2
-        sail_weight = area * ACS3_SAIL_MASS_PER_M2
-        total_mass = mass + sma_weight + sail_weight
+#         sma_weight = perimeter * mass_per_m2
+#         sail_weight = area * ACS3_SAIL_MASS_PER_M2
+#         total_mass = mass + sma_weight + sail_weight
 
-        thrust = 2 * SOLAR_PRESSURE * area
-        acceleration = thrust / total_mass
+#         thrust = 2 * SOLAR_PRESSURE * area
+#         acceleration = thrust / total_mass
 
-        accel_per_min = acceleration * 60
-        accel_per_hour = acceleration * 3600
-        # Δv over time
-        hours = np.linspace(0, 24*30, 300)
-        seconds = hours * 3600
-        dv_values = acceleration * seconds
+#         accel_per_min = acceleration * 60
+#         accel_per_hour = acceleration * 3600
+#         # Δv over time
+#         hours = np.linspace(0, 24*30, 300)
+#         seconds = hours * 3600
+#         dv_values = acceleration * seconds
         
-        figure.add_trace(go.Scatter(x=hours, y=dv_values, mode='lines', name='Δv (m/s)'))
+#         figure.add_trace(go.Scatter(x=hours, y=dv_values, mode='lines', name='Δv (m/s)'))
 
-        return (figure, accel_per_min, accel_per_hour, sma_weight, sail_weight, total_mass, thrust, acceleration)
+#         return (figure, accel_per_min, accel_per_hour, sma_weight, sail_weight, total_mass, thrust, acceleration)
 def get_deltav_at_700(mass_per_m2:float):
         # Δv heatmap at 700 hours
         HOURS = 700
@@ -257,23 +282,32 @@ def get_mission_speeds(sma_total_mass, accel_sma, accel_acs3 ):
     Input("sail-height", "value"),
     Input("mass", "value")
 )
-def calculate_and_plot(width, height, mass):
-    if width and height and mass and width > 0 and height > 0 and mass > 0:
+def calculate_and_plot(width, height, additional_mass):
+    if width and height and additional_mass and width > 0 and height > 0 and additional_mass > 0:
         area = width * height
         perimeter = 2 * (width + height)
 
         dv_fig = go.Figure()
-        # dv_fig, accel_per_min, accel_per_hour, sma_weight, sail_weight, total_mass, thrust, acceleration = get_deltav_and_accel_per_hour(area=area, mass=mass, perimeter=perimeter, mass_per_m2=SMA_MASS_PER_M2, figure=dv_fig)
-        # dv_fig, acs3_accel_per_min, acs3_accel_per_hour, acs3_weight, acs3_sail_weight, acs3_total_mass, acs3_thrust, acs3_acceleration = get_deltav_and_accel_per_hour(area=area, mass=mass, perimeter=perimeter, mass_per_m2=ACS3_BOOMS_MASS_PER_M2, figure=dv_fig)
+        # dv_fig, accel_per_min, accel_per_hour, sma_weight, sail_weight, total_mass, thrust, acceleration = get_deltav_and_accel_per_hour(area=area, additional_mass=additional_mass, perimeter=perimeter, mass_per_m2=SMA_MASS_PER_M, figure=dv_fig)
+        # dv_fig, acs3_accel_per_min, acs3_accel_per_hour, acs3_booms_weight, acs3_sail_weight, acs3_total_mass, acs3_thrust, acs3_acceleration = get_deltav_and_accel_per_hour(area=area, additional_mass=additional_mass, perimeter=perimeter, mass_per_m2=ACS3_BOOMS_MASS_PER_M2, figure=dv_fig)
         
         # Δv over time
         hours = np.linspace(0, 24*30, 300)
         seconds = hours * 3600
         
-        # SMA version
-        sma_weight = area * SMA_MASS_PER_M2
         sail_weight = area * ACS3_SAIL_MASS_PER_M2
-        sma_total_mass = mass + sma_weight + sail_weight
+        
+        # SMA version
+        # sma_weight = area * SMA_MASS_PER_M2
+        # sail_weight = area * ACS3_SAIL_MASS_PER_M2
+        # sma_total_mass = additional_mass + sma_weight + sail_weight
+        perimeter = 2 * (width + height)
+        radius = width / 2
+        basic_sma_length = 5 * width
+        basic_sma_mass_g = basic_sma_length * SMA_MASS_PER_M
+        basic_sma_mass_kg = basic_sma_mass_g / 1000
+        sma_total_mass = additional_mass + basic_sma_mass_kg + sail_weight + OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED
+
 
         sma_thrust = 2 * SOLAR_PRESSURE * area
         acceleration = sma_thrust / sma_total_mass
@@ -283,10 +317,10 @@ def calculate_and_plot(width, height, mass):
         dv_values = acceleration * seconds
         
         # ACS3 version, calculated by area vs booms because thats how we got that number
-        acs3_weight = area * ACS3_BOOMS_MASS_PER_M2
-        sail_weight = area * ACS3_SAIL_MASS_PER_M2
+        acs3_booms_length = (ACS3_SCALING_FACTOR * width) 
+        acs3_booms_weight = acs3_booms_length * ACS3_BOOMS_MASS_PER_M2
         # add 4 because we save that with the SMA by reducing components
-        acs3_total_mass = (mass + acs3_weight + sail_weight) + 4
+        acs3_total_mass = additional_mass + acs3_booms_weight + sail_weight + SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS
 
         acs3_thrust = 2 * SOLAR_PRESSURE * area
         acceleration = acs3_thrust / acs3_total_mass
@@ -300,11 +334,11 @@ def calculate_and_plot(width, height, mass):
         accel_acs3 = acs3_thrust / acs3_total_mass
         # get_mission_speeds(sma_total_mass=sma_total_mass, accel_sma=accel_sma, accel_acs3=accel_acs3)
         # add the lines
-        dv_fig.add_trace(go.Scatter(x=hours, y=dv_values, mode='lines', name='Shape Memory Alloy-based "SALL-E" Δv (m/s)'))
+        dv_fig.add_trace(go.Scatter(x=hours, y=dv_values, mode='lines', name='Shape Memory Alloy-based Subsystem Δv (m/s)'))
         dv_fig.add_trace(go.Scatter(x=hours, y=acs3_dv_values, mode='lines', name='ACS3 Flight Profile Extended Δv (m/s)'))
         
         dv_fig.update_layout(
-            title="Δv Over Time",
+            title=f"Δv Over Time With {area:.0f}m² Sail Size and {additional_mass} kg Other Weight",
             xaxis_title="Time (hours)",
             yaxis_title="Δv (m/s)",
             template="plotly_white"
@@ -369,7 +403,7 @@ def calculate_and_plot(width, height, mass):
         output = html.Div([
             html.P(f"Sail Area: {area:.2f} m²"),
             html.P(f"Perimeter: {perimeter:.2f} m"),
-            html.P(f"SMA Weight (perimeter): {sma_weight:.4f} kg"),
+            html.P(f"SMA Weight (perimeter): {basic_sma_mass_kg:.4f} kg"),
             html.P(f"Sail Weight (ACS3): {sail_weight:.4f} kg"),
             html.P(f"SMA Total Mass (including SMA and sail): {sma_total_mass:.4f} kg"),
             html.P(f"Estimated Thrust: {sma_thrust:.6e} N"),
@@ -383,4 +417,4 @@ def calculate_and_plot(width, height, mass):
 
     return "Please enter valid inputs.", go.Figure(), go.Figure()
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)
