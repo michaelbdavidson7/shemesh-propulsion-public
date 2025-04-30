@@ -2,13 +2,13 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 
-def get_planet_mission_card(hardcoded_sail_area, SMA_MASS_PER_M2, ACS3_BOOMS_MASS_PER_M2):
+def get_planet_mission_card(hardcoded_sail_area, SMA_MASS_PER_M2, ACS3_BOOMS_MASS_PER_M):
     sail_area = hardcoded_sail_area  # m²
     base_mass = 10  # kg
 
     # Mass calculations
     sma_mass = sail_area * SMA_MASS_PER_M2 
-    acs3_mass = sail_area * ACS3_BOOMS_MASS_PER_M2 
+    acs3_mass = sail_area * ACS3_BOOMS_MASS_PER_M
 
     sma_total_mass = base_mass + sma_mass
     acs3_total_mass = base_mass + acs3_mass
