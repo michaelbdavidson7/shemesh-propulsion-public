@@ -185,7 +185,7 @@ acceleration = thrust / total_mass
 delta_v = acceleration * SECONDS  # m/s at 700 hours
 
 # Plotting
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(10, 6)) 
 contour = plt.contourf(A, M, delta_v, levels=50, cmap="viridis")
 cbar = plt.colorbar(contour)
 cbar.set_label("Δv at 700 hours (m/s)")
@@ -258,7 +258,7 @@ def calculate_and_plot(width, height, additional_mass):
         seconds = hours * 3600
         sail_weight = area * ACS3_SAIL_MASS_PER_M2 
         
-        acceleration, output = get_scalar_acceleration(is_sma=True, 
+        acceleration, output, component_mass_kg = get_scalar_acceleration(is_sma=True, 
                                                        mass_per_m_len=SMA_MASS_PER_M, 
                                                        other_subsystem_mass=OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED, 
                                                        additional_spacecraft_mass=additional_mass, 
@@ -267,7 +267,7 @@ def calculate_and_plot(width, height, additional_mass):
         
         dv_values = acceleration * seconds
 
-        acs3_acceleration, acs3_output = get_scalar_acceleration(is_sma=False, 
+        acs3_acceleration, acs3_output, acs3_component_mass_kg = get_scalar_acceleration(is_sma=False, 
                                                        mass_per_m_len=ACS3_BOOM_MASS_PER_M_KG * 1000, 
                                                        other_subsystem_mass=SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS, 
                                                        additional_spacecraft_mass=additional_mass, 

@@ -111,7 +111,7 @@ def get_scalar_acceleration(is_sma:bool,
             html.H5(f"Time to Moon, incl. duty cycle reduction: {days_to_moon:.2f} days or {days_to_moon/30.44:.2f} months"),
         ])
         
-        return acceleration, output
+        return acceleration, output, component_mass_kg
     
 
 def get_planet_mission_card(hardcoded_sail_area, SMA_MASS_PER_M2, ACS3_BOOMS_MASS_PER_M):
@@ -122,14 +122,14 @@ def get_planet_mission_card(hardcoded_sail_area, SMA_MASS_PER_M2, ACS3_BOOMS_MAS
     
 
     # Acceleration
-    a_sma, output = get_scalar_acceleration(is_sma=True, 
+    a_sma, output, component_mass_kg = get_scalar_acceleration(is_sma=True, 
                                                     mass_per_m_len=SMA_MASS_PER_M, 
                                                     other_subsystem_mass=OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED, 
                                                     additional_spacecraft_mass=base_mass, 
                                                     width=width,
                                                     height=height)
 
-    a_acs3, acs3_output = get_scalar_acceleration(is_sma=False, 
+    a_acs3, acs3_output, acs3_component_mass_kg = get_scalar_acceleration(is_sma=False, 
                                                     mass_per_m_len=ACS3_BOOM_MASS_PER_M_KG * 1000, 
                                                     other_subsystem_mass=SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS, 
                                                     additional_spacecraft_mass=base_mass, 
@@ -158,8 +158,9 @@ def get_planet_mission_card(hardcoded_sail_area, SMA_MASS_PER_M2, ACS3_BOOMS_MAS
                 dbc.CardBody([
                     html.H5(f"{planet} Transfer", className="card-title"),
                     html.P(f"Target Δv: {dv:.0f} m/s"),
-                    html.P(f"SMA Time to {planet}: {t_sma_days:.0f} days or {t_sma_days / 30.44:.2f} months"),
                     html.P(f"ACS3 Time to {planet}: {t_acs3_days:.0f} days or {t_acs3_days / 30.44:.2f} months"),
+                    html.P(f"SMA Time to {planet}: {t_sma_days:.0f} days or {t_sma_days / 30.44:.2f} months"),
+                    html.P(f"ACS3 component weight: {acs3_component_mass_kg:.2f} kg, SMA component weight: {component_mass_kg:.2f} kg, sail weight: {hardcoded_sail_area * ACS3_SAIL_MASS_PER_M2:.2f} kg"), 
                     # html.P(f"SMA Solar Propulsion Hours: {t_sma:.1f}"),
                     # html.P(f"ACS3 Solar Propulsion Hours: {t_acs3:.1f}"),
                     html.P(f"SMA is {percent_faster:.1f}% faster")
