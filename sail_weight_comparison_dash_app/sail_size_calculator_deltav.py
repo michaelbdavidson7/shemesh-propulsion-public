@@ -101,7 +101,7 @@ dbc.Row([
     ], width=6),
     dbc.Col([
         html.Hr(),
-    html.H5(f"Mission Time Comparison (Hardcoded: {hardcoded_sail_area} m² sail, 10 kg base mass)"),
+    html.H5(f"Mission Time Comparison (Hardcoded: {hardcoded_sail_area} m² sail, 10 kg other spacecraft mass)"),
     planet_cards,
     ], width=6),
 ])
@@ -256,7 +256,7 @@ def calculate_and_plot(width, height, additional_mass):
         # Δv over time
         hours = np.linspace(0, 24*30, 300)
         seconds = hours * 3600
-        sail_weight = area * ACS3_SAIL_MASS_PER_M2
+        sail_weight = area * ACS3_SAIL_MASS_PER_M2 
         
         acceleration, output = get_scalar_acceleration(is_sma=True, 
                                                        mass_per_m_len=SMA_MASS_PER_M, 

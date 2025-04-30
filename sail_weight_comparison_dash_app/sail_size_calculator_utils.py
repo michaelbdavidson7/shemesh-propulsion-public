@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 SOLAR_PRESSURE = 4.56e-6  # N/m²
 C = 3e8  # Speed of light, m/s
@@ -69,8 +70,8 @@ def get_scalar_acceleration(is_sma:bool,
                             mass_per_m_len:float, 
                             other_subsystem_mass:float, 
                             additional_spacecraft_mass:float, 
-                            width:int,
-                            height:int):
+                            width:int|float,
+                            height:int|float):
         area = width * height
         perimeter = 2 * (width + height)
         if is_sma:
@@ -115,43 +116,52 @@ def get_scalar_acceleration(is_sma:bool,
 
 def get_planet_mission_card(hardcoded_sail_area, SMA_MASS_PER_M2, ACS3_BOOMS_MASS_PER_M):
     sail_area = hardcoded_sail_area  # m²
+    width = math.sqrt(hardcoded_sail_area)  # m²
+    height = math.sqrt(hardcoded_sail_area)  # m²
     base_mass = 10  # kg
-
-    # Mass calculations
-    sma_mass = sail_area * SMA_MASS_PER_M2 
-    acs3_mass = sail_area * ACS3_BOOMS_MASS_PER_M
-
-    sma_total_mass = base_mass + sma_mass
-    acs3_total_mass = base_mass + acs3_mass
-
-    # Thrust (same for both)
-    thrust = 2 * 4.56e-6 * sail_area  # Newtons
+    
 
     # Acceleration
-    a_sma = thrust / sma_total_mass
-    a_acs3 = thrust / acs3_total_mass
+    a_sma, output = get_scalar_acceleration(is_sma=True, 
+                                                    mass_per_m_len=SMA_MASS_PER_M, 
+                                                    other_subsystem_mass=OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED, 
+                                                    additional_spacecraft_mass=base_mass, 
+                                                    width=width,
+                                                    height=height)
+
+    a_acs3, acs3_output = get_scalar_acceleration(is_sma=False, 
+                                                    mass_per_m_len=ACS3_BOOM_MASS_PER_M_KG * 1000, 
+                                                    other_subsystem_mass=SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS, 
+                                                    additional_spacecraft_mass=base_mass, 
+                                                    width=width,
+                                                    height=height)
 
     # Target Δv per mission
     missions = {
-        "🌕 Moon": 3100,
-        "✨Venus": 3500,
-        "🔴 Mars": 4000
+        "Moon": 3100,
+        "Venus": 3500,
+        "Mars": 4000
     }
 
     cards = []
 
     for planet, dv in missions.items():
-        t_sma = dv / a_sma / 3600  # convert to hours
-        t_acs3 = dv / a_acs3 / 3600
+        t_sma = dv / (a_sma * 3600)  # convert to hours
+        t_acs3 = dv / (a_acs3 * 3600)
         percent_faster = ((t_acs3 - t_sma) / t_acs3) * 100
+        duty_cycle = 0.20
+        t_sma_days = dv / ((a_sma * 3600)  * 24 * duty_cycle)
+        t_acs3_days = dv / ((a_acs3 * 3600) * 24 * duty_cycle)
 
         cards.append(
             dbc.Card(
                 dbc.CardBody([
                     html.H5(f"{planet} Transfer", className="card-title"),
                     html.P(f"Target Δv: {dv:.0f} m/s"),
-                    html.P(f"SMA Solar Propulsion Hours: {t_sma:.1f}"),
-                    html.P(f"ACS3 Solar Propulsion Hours: {t_acs3:.1f}"),
+                    html.P(f"SMA Time to {planet}: {t_sma_days:.0f} days or {t_sma_days / 30.44:.2f} months"),
+                    html.P(f"ACS3 Time to {planet}: {t_acs3_days:.0f} days or {t_acs3_days / 30.44:.2f} months"),
+                    # html.P(f"SMA Solar Propulsion Hours: {t_sma:.1f}"),
+                    # html.P(f"ACS3 Solar Propulsion Hours: {t_acs3:.1f}"),
                     html.P(f"SMA is {percent_faster:.1f}% faster")
                 ]),
                 className="mb-3 shadow-sm"
