@@ -395,7 +395,7 @@ def calculate_and_plot(width, height, additional_mass):
         )
         
         dv_at_700_acs3 = get_deltav_at_700(is_sma=False, mass_per_m_len=ACS3_BOOM_MASS_PER_M_KG, other_subsystem_mass=SAIL_BOOM_ENTIRE_MISSION_SUBSYSTEM_MINUS_BOOMS_AND_SAILS)
-        dv_at_700_sma = get_deltav_at_700(is_sma=True, mass_per_m_len=SMA_MASS_PER_M, other_subsystem_mass=OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED)
+        dv_at_700_sma = get_deltav_at_700(is_sma=True, mass_per_m_len=SMA_MASS_PER_M / 1000, other_subsystem_mass=OTHER_SUBSECTION_PARTS_THAT_ARE_NEEDED)
 
         acs3_heatmap_fig = get_deltav_heatmap(dv_at_700_acs3, title="ACS3 EXPANDED - Δv at 700 Hours vs Sail Area and Base Mass")
         salle_heatmap_fig = get_deltav_heatmap(dv_at_700_sma, title="SMA VERSION - Δv at 700 Hours vs Sail Area and Base Mass")
